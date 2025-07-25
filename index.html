@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClimaNow | Live Weather & Air Quality</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>🌦️ ClimaNow</h1>
+    <p class="tagline">Live Weather and Air Quality Dashboard</p>
+
+    <!-- Search Box -->
+    <div class="search-box">
+      <input type="text" id="cityInput" placeholder="Enter city name..." aria-label="City Name" />
+      <ul id="suggestions"></ul>
+      <div class="button-group">
+        <button id="searchBtn">Search</button>
+        <button id="locateBtn">📍 Use My Location</button>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <section id="result" class="card hidden">
+      <h2 id="locationName"></h2>
+
+      <div class="weather-info">
+        <div class="icon">
+          <img id="weatherIcon" src="" alt="Weather icon" />
+        </div>
+        <div class="data">
+          <p id="temperature" class="temp"></p>
+          <p id="description" class="description"></p>
+        </div>
+      </div>
+
+      <div class="aqi-info">
+        <p><strong>Air Quality Index (AQI):</strong> <span id="aqi"></span></p>
+        <p id="aqiDesc" class="description"></p>
+      </div>
+    </section>
+
+    <!-- Error Message -->
+    <p id="error" class="error"></p>
+  </main>
+
+  <footer>
+    <p>© 2025 ClimaNow. All rights reserved.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

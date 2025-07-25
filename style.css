@@ -1,0 +1,156 @@
+/* Reset & Base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  background: #f0f4f8;
+  color: #2c3e50;
+  padding: 2rem;
+}
+
+.container {
+  max-width: 600px;
+  margin: auto;
+  text-align: center;
+}
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.tagline {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 2rem;
+}
+
+/* Search Box */
+.search-box {
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.search-box input {
+  padding: 10px;
+  width: 60%;
+  max-width: 300px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.button-group {
+  margin-top: 10px;
+}
+
+.button-group button {
+  margin: 5px;
+  padding: 10px 14px;
+  border: none;
+  background: #007bff;
+  color: white;
+  font-size: 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.button-group button:hover {
+  background: #0056b3;
+}
+
+/* Autocomplete Suggestions */
+#suggestions {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem auto 0;
+  max-width: 300px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: absolute;
+  z-index: 1000;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+}
+
+#suggestions li {
+  padding: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+#suggestions li:hover {
+  background-color: #f0f0f0;
+}
+
+/* Result Card */
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  margin-top: 1rem;
+  transition: background 0.3s;
+}
+
+.hidden {
+  display: none;
+}
+
+.weather-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.weather-info img {
+  width: 60px;
+  height: 60px;
+  margin-right: 15px;
+}
+
+.temp {
+  font-size: 2rem;
+  color: #e67e22;
+}
+
+.description {
+  color: #888;
+  font-size: 1rem;
+}
+
+.aqi-info {
+  margin-top: 1rem;
+}
+
+.error {
+  color: #e74c3c;
+  margin-top: 1rem;
+}
+
+/* Footer */
+footer {
+  margin-top: 3rem;
+  font-size: 0.9rem;
+  color: #888;
+  text-align: center;
+}
+
+footer a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
