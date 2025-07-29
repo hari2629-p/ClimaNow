@@ -7,41 +7,82 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <main class="container">
-    <h1>🌦️ ClimaNow</h1>
-    <p class="tagline">Live Weather and Air Quality Dashboard</p>
+  <div class="container">
+    <header class="header">
+      <h1>🌦️ ClimaNow</h1>
+      <p class="tagline">Live Weather and Air Quality Dashboard</p>
+    </header>
 
-    <!-- Search Box -->
-    <div class="search-box">
-      <input type="text" id="cityInput" placeholder="Enter city name..." />
-      <ul id="suggestions"></ul>
-      <div class="button-group">
-        <button id="searchBtn">Search</button>
-        <button id="locateBtn">📍 Use My Location</button>
-      </div>
-    </div>
-
-    <!-- Results -->
-    <section id="result" class="card hidden">
-      <h2 id="locationName"></h2>
-      <div class="weather-info">
-        <img id="weatherIcon" src="" alt="Weather icon" />
-        <div>
-          <p id="temperature" class="temp"></p>
-          <p id="description" class="description"></p>
+    <section class="search-section">
+      <div class="search-box">
+        <div class="input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="cityInput" placeholder="Enter city name..." autocomplete="off" />
+          <div class="loading-spinner" id="loadingSpinner"></div>
         </div>
-      </div>
-      <div class="aqi-info">
-        <p><strong>AQI:</strong> <span id="aqi"></span></p>
-        <p id="aqiDesc" class="description"></p>
+        <ul id="suggestions"></ul>
+
+        <div class="button-group">
+          <button id="searchBtn" class="btn btn-primary">
+            <span>🔍</span>
+            Search Weather
+          </button>
+          <button id="locateBtn" class="btn btn-secondary">
+            <span>📍</span>
+            Use My Location
+          </button>
+        </div>
       </div>
     </section>
 
-    <p id="error" class="error"></p>
-  </main>
+    <div id="results" class="results-grid hidden">
+      <div class="card weather-card fade-in">
+        <h2 id="locationName" class="location-name"></h2>
+        <div class="weather-display">
+          <img id="weatherIcon" class="weather-icon" src="" alt="Weather icon" />
+          <div class="weather-details">
+            <div id="temperature" class="temperature"></div>
+            <div id="description" class="description"></div>
+          </div>
+        </div>
+        <div class="weather-stats">
+          <div class="stat-item">
+            <div id="humidity" class="stat-value">--</div>
+            <div class="stat-label">Humidity</div>
+          </div>
+          <div class="stat-item">
+            <div id="windSpeed" class="stat-value">--</div>
+            <div class="stat-label">Wind Speed</div>
+          </div>
+          <div class="stat-item">
+            <div id="pressure" class="stat-value">--</div>
+            <div class="stat-label">Pressure</div>
+          </div>
+          <div class="stat-item">
+            <div id="visibility" class="stat-value">--</div>
+            <div class="stat-label">Visibility</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card fade-in">
+        <div class="card-header">
+          <div class="card-icon">🌬️</div>
+          <h3 class="card-title">Air Quality Index</h3>
+        </div>
+        <div class="aqi-display">
+          <div id="aqi" class="aqi-value">--</div>
+          <div id="aqiDesc" class="aqi-description"></div>
+          <div id="aqiAdvice" class="aqi-advice"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="error" class="error hidden"></div>
+  </div>
 
   <footer>
-    <p>© 2025 ClimaNow. All rights reserved.</p>
+    <p>© 2025 ClimaNow. Powered by OpenWeatherMap & WAQI APIs</p>
   </footer>
 
   <script src="script.js"></script>
