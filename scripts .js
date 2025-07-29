@@ -2,6 +2,18 @@
 const API_KEY = "b6aaf929439b2fa7cfd31c5f100e82a1";
 const AQI_TOKEN = "0f70146b1a5e8df59ea467b47ecc1f78f64e8ad3";
 
+// Popular cities for dropdown
+const POPULAR_CITIES = [
+  "New York, US", "London, GB", "Tokyo, JP", "Paris, FR", "Sydney, AU",
+  "Dubai, AE", "Singapore, SG", "Hong Kong, HK", "Mumbai, IN", "Delhi, IN",
+  "Beijing, CN", "Shanghai, CN", "Los Angeles, US", "Chicago, US", "Toronto, CA",
+  "Berlin, DE", "Madrid, ES", "Rome, IT", "Amsterdam, NL", "Stockholm, SE",
+  "Moscow, RU", "Istanbul, TR", "Seoul, KR", "Bangkok, TH", "Jakarta, ID",
+  "Cairo, EG", "Lagos, NG", "São Paulo, BR", "Buenos Aires, AR", "Mexico City, MX",
+  "Bangalore, IN", "Chennai, IN", "Kolkata, IN", "Hyderabad, IN", "Pune, IN",
+  "Thiruvananthapuram, IN", "Kochi, IN", "Kozhikode, IN", "Thrissur, IN"
+];
+
 // DOM Elements
 const elements = {
   searchBtn: document.getElementById("searchBtn"),
@@ -33,6 +45,7 @@ elements.locateBtn.addEventListener("click", handleGeolocation);
 elements.searchBtn.addEventListener("click", handleSearch);
 elements.cityInput.addEventListener("input", handleInputChange);
 elements.cityInput.addEventListener("keypress", handleKeyPress);
+elements.cityInput.addEventListener("focus", showPopularCities);
 
 // Hide suggestions when clicking outside
 document.addEventListener("click", (e) => {
@@ -41,27 +54,90 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// Geolocation Handler
+// Show popular cities when input is focused
+function showPopularCities() {
+  if (elements.cityInput.value.trim().length === 0) {
+    displayPopularCities();
+  }
+}
+
+// Display popular cities
+function displayPopularCities() {
+  elements.suggestions.innerHTML = '<li style="background: #f0f0f0; font-weight: bold; padding: 0.5rem 1rem;">Popular Cities</li>';
+
+  POPULAR_CITIES.forEach(city => {
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <span class="suggestion-icon">🌍</span>
+      <span>${city}</span>
+    `;
+
+    li.addEventListener("click", () => {
+      const cityName = city.split(',')[0].trim();
+      elements.cityInput.value = cityName;
+      hideSuggestions();
+      searchCityWeather(cityName);
+    });
+
+    elements.suggestions.appendChild(li);
+  });
+
+  showSuggestions();
+}
+
+// Enhanced Geolocation Handler with better error handling
 function handleGeolocation() {
+  console.log("🔍 Starting geolocation request...");
+
   if (!navigator.geolocation) {
-    showError("Geolocation is not supported by your browser.");
+    showError("❌ Geolocation is not supported by your browser. Please search for a city instead.");
+    return;
+  }
+
+  // Check if geolocation is blocked
+  if (window.location.protocol === 'file:') {
+    showError("❌ Geolocation requires HTTPS or localhost. Please search for a city instead.");
     return;
   }
 
   setLoading(true);
+  console.log("📍 Requesting location permission...");
+
+  const options = {
+    enableHighAccuracy: true,
+    timeout: 15000, // 15 seconds
+    maximumAge: 300000 // 5 minutes
+  };
+
   navigator.geolocation.getCurrentPosition(
     (position) => {
+      console.log("✅ Location found:", position.coords);
       const { latitude, longitude } = position.coords;
+      console.log(`📍 Coordinates: ${latitude}, ${longitude}`);
       fetchWeatherData(latitude, longitude);
     },
     (error) => {
+      console.error("❌ Geolocation error:", error);
       setLoading(false);
-      let errorMessage = "Location access denied or unavailable.";
-      if (error.code === error.TIMEOUT) errorMessage = "Location request timed out.";
-      else if (error.code === error.POSITION_UNAVAILABLE) errorMessage = "Location information unavailable.";
+
+      let errorMessage = "Location detection failed. ";
+      switch(error.code) {
+        case error.PERMISSION_DENIED:
+          errorMessage += "Location access was denied. Please enable location access in your browser settings or search for a city manually.";
+          break;
+        case error.POSITION_UNAVAILABLE:
+          errorMessage += "Location information is unavailable. Please try searching for a city instead.";
+          break;
+        case error.TIMEOUT:
+          errorMessage += "Location request timed out. Please try again or search for a city manually.";
+          break;
+        default:
+          errorMessage += "An unknown error occurred. Please search for a city manually.";
+          break;
+      }
       showError(errorMessage);
     },
-    { timeout: 10000, enableHighAccuracy: true }
+    options
   );
 }
 
@@ -81,6 +157,11 @@ function handleInputChange() {
 
   clearTimeout(suggestionTimeout);
 
+  if (query.length === 0) {
+    displayPopularCities();
+    return;
+  }
+
   if (query.length < 2) {
     hideSuggestions();
     return;
@@ -99,7 +180,41 @@ function handleKeyPress(e) {
   }
 }
 
-// Fetch Suggestions
+// Test API connectivity
+async function testAPIConnection() {
+  try {
+    console.log("🔧 Testing API connectivity...");
+
+    // Test OpenWeatherMap API
+    const testResponse = await fetch(
+      `https://api.openweathermap.org/data/2.5/weather?q=London&appid=${API_KEY}`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        }
+      }
+    );
+
+    if (!testResponse.ok) {
+      console.error("❌ OpenWeatherMap API test failed:", testResponse.status);
+      if (testResponse.status === 401) {
+        showError("❌ Invalid API key. Please check your OpenWeatherMap API key.");
+        return false;
+      }
+    } else {
+      console.log("✅ OpenWeatherMap API is working");
+    }
+
+    return true;
+  } catch (error) {
+    console.error("❌ API test failed:", error);
+    showError("❌ Network connectivity issue. Please check your internet connection.");
+    return false;
+  }
+}
+
+// Fetch Suggestions with improved error handling
 async function fetchSuggestions(query) {
   try {
     if (currentRequest) currentRequest.abort();
@@ -107,18 +222,32 @@ async function fetchSuggestions(query) {
     const controller = new AbortController();
     currentRequest = controller;
 
+    console.log(`🔍 Searching for: ${query}`);
+
     const response = await fetch(
-      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=5&appid=${API_KEY}`,
-      { signal: controller.signal }
+      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=8&appid=${API_KEY}`,
+      {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+        }
+      }
     );
 
-    if (!response.ok) throw new Error("Failed to fetch suggestions");
+    if (!response.ok) {
+      console.error("❌ Suggestions API failed:", response.status);
+      if (response.status === 401) {
+        showError("Invalid API key. Please check your OpenWeatherMap API key.");
+      }
+      return;
+    }
 
     const data = await response.json();
+    console.log(`✅ Found ${data.length} suggestions for "${query}"`);
     displaySuggestions(data);
   } catch (error) {
     if (error.name !== 'AbortError') {
-      console.error("Error fetching suggestions:", error);
+      console.error("❌ Error fetching suggestions:", error);
     }
   }
 }
@@ -128,21 +257,27 @@ function displaySuggestions(places) {
   elements.suggestions.innerHTML = "";
 
   if (places.length === 0) {
-    hideSuggestions();
+    const li = document.createElement("li");
+    li.innerHTML = '<span style="color: #666;">No cities found. Try a different spelling.</span>';
+    li.style.cursor = 'default';
+    elements.suggestions.appendChild(li);
+    showSuggestions();
     return;
   }
 
   places.forEach(place => {
     const li = document.createElement("li");
+    const displayText = `${place.name}${place.state ? ', ' + place.state : ''}, ${place.country}`;
     li.innerHTML = `
       <span class="suggestion-icon">📍</span>
-      <span>${place.name}, ${place.state ? place.state + ', ' : ''}${place.country}</span>
+      <span>${displayText}</span>
     `;
 
     li.addEventListener("click", () => {
       elements.cityInput.value = place.name;
       hideSuggestions();
-      fetchWeatherData(place.lat, place.lon, `${place.name}, ${place.state ? place.state + ', ' : ''}${place.country}`);
+      console.log(`📍 Selected: ${displayText} (${place.lat}, ${place.lon})`);
+      fetchWeatherData(place.lat, place.lon, displayText);
     });
 
     elements.suggestions.appendChild(li);
@@ -160,56 +295,90 @@ function hideSuggestions() {
   elements.suggestions.style.display = "none";
 }
 
-// Search City Weather
+// Search City Weather with enhanced error handling
 async function searchCityWeather(city) {
   try {
     setLoading(true);
     hideSuggestions();
 
+    console.log(`🔍 Searching weather for: ${city}`);
+
     const response = await fetch(
-      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${API_KEY}`
+      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${API_KEY}`,
+      {
+        headers: {
+          'Accept': 'application/json',
+        }
+      }
     );
 
-    if (!response.ok) throw new Error("Failed to fetch location data");
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
 
     const data = await response.json();
+    console.log("🌍 Geocoding result:", data);
 
     if (data.length === 0) {
-      throw new Error("City not found. Please check the spelling and try again.");
+      throw new Error(`City "${city}" not found. Please check the spelling and try again.`);
     }
 
     const { lat, lon, name, state, country } = data[0];
-    const displayName = `${name}, ${state ? state + ', ' : ''}${country}`;
+    const displayName = `${name}${state ? ', ' + state : ''}, ${country}`;
 
+    console.log(`✅ Found city: ${displayName} at ${lat}, ${lon}`);
     await fetchWeatherData(lat, lon, displayName);
   } catch (error) {
     setLoading(false);
+    console.error("❌ City search error:", error);
     showError(error.message);
   }
 }
 
-// Fetch Weather Data
+// Fetch Weather Data with comprehensive error handling
 async function fetchWeatherData(lat, lon, placeName = null) {
   try {
     clearError();
+    console.log(`🌤️ Fetching weather data for coordinates: ${lat}, ${lon}`);
 
     // Fetch weather data
     const weatherResponse = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
+      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`,
+      {
+        headers: {
+          'Accept': 'application/json',
+        }
+      }
     );
 
-    if (!weatherResponse.ok) throw new Error("Failed to fetch weather data");
+    if (!weatherResponse.ok) {
+      throw new Error(`Weather API failed with status ${weatherResponse.status}`);
+    }
 
     const weatherData = await weatherResponse.json();
+    console.log("✅ Weather data received:", weatherData);
 
-    // Fetch AQI data
-    const aqiResponse = await fetch(
-      `https://api.waqi.info/feed/geo:${lat};${lon}/?token=${AQI_TOKEN}`
-    );
-
+    // Fetch AQI data (with fallback if it fails)
     let aqiData = null;
-    if (aqiResponse.ok) {
-      aqiData = await aqiResponse.json();
+    try {
+      console.log(`🌬️ Fetching AQI data for coordinates: ${lat}, ${lon}`);
+      const aqiResponse = await fetch(
+        `https://api.waqi.info/feed/geo:${lat};${lon}/?token=${AQI_TOKEN}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+          }
+        }
+      );
+
+      if (aqiResponse.ok) {
+        aqiData = await aqiResponse.json();
+        console.log("✅ AQI data received:", aqiData);
+      } else {
+        console.warn("⚠️ AQI API failed, continuing without AQI data");
+      }
+    } catch (aqiError) {
+      console.warn("⚠️ AQI fetch failed:", aqiError);
     }
 
     // Update UI
@@ -218,8 +387,8 @@ async function fetchWeatherData(lat, lon, placeName = null) {
     showResults();
 
   } catch (error) {
-    showError("Failed to load weather data. Please try again.");
-    console.error("Weather fetch error:", error);
+    console.error("❌ Weather fetch error:", error);
+    showError("Failed to load weather data. Please check your internet connection and try again.");
   } finally {
     setLoading(false);
   }
@@ -237,9 +406,11 @@ function updateWeatherUI(data, placeName) {
 
   // Additional weather stats
   elements.humidity.textContent = `${data.main.humidity}%`;
-  elements.windSpeed.textContent = `${data.wind.speed} m/s`;
+  elements.windSpeed.textContent = `${data.wind ? data.wind.speed : 0} m/s`;
   elements.pressure.textContent = `${data.main.pressure} hPa`;
   elements.visibility.textContent = data.visibility ? `${(data.visibility / 1000).toFixed(1)} km` : 'N/A';
+
+  console.log("✅ Weather UI updated successfully");
 }
 
 // Update AQI UI
@@ -249,6 +420,7 @@ function updateAQIUI(data) {
     elements.aqiDesc.textContent = "Air quality data unavailable";
     elements.aqiAdvice.textContent = "Unable to retrieve air quality information for this location.";
     elements.aqi.className = "aqi-value";
+    console.log("⚠️ AQI data unavailable");
     return;
   }
 
@@ -259,6 +431,8 @@ function updateAQIUI(data) {
   elements.aqi.className = `aqi-value ${aqiInfo.class}`;
   elements.aqiDesc.textContent = aqiInfo.description;
   elements.aqiAdvice.textContent = aqiInfo.advice;
+
+  console.log(`✅ AQI updated: ${aqiValue} (${aqiInfo.description})`);
 }
 
 // Get AQI Information
@@ -333,6 +507,10 @@ function clearError() {
 }
 
 // Initialize app
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+  console.log("🚀 ClimaNow app initialized");
   elements.cityInput.focus();
+
+  // Test API connection on startup
+  await testAPIConnection();
 });
