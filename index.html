@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ClimaNow | Live Weather & Air Quality</title>
   <link rel="stylesheet" href="style.css" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-sA+e2pP1U9PvL42G+a3XjHXzWwViZfw6k5o3iM2Q6A8="
+    crossorigin=""
+  />
 </head>
 <body>
   <main class="container">
@@ -13,7 +19,7 @@
 
     <!-- Search Box -->
     <div class="search-box">
-      <input type="text" id="cityInput" placeholder="Enter city name..." aria-label="City Name" />
+      <input type="text" id="cityInput" placeholder="Enter city name..." />
       <ul id="suggestions"></ul>
       <div class="button-group">
         <button id="searchBtn">Search</button>
@@ -41,6 +47,9 @@
       </div>
     </section>
 
+    <!-- Map -->
+    <div id="map" class="map"></div>
+
     <!-- Error Message -->
     <p id="error" class="error"></p>
   </main>
@@ -49,6 +58,11 @@
     <p>© 2025 ClimaNow. All rights reserved.</p>
   </footer>
 
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-o9N1j7kPZQjNjUQf3EN0F03S0lmL3+QCI5xZbQWb0nM="
+    crossorigin=""
+  ></script>
   <script src="script.js"></script>
 </body>
 </html>

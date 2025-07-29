@@ -1,4 +1,4 @@
-/* Reset & Base */
+/* Base */
 * {
   margin: 0;
   padding: 0;
@@ -64,34 +64,6 @@ h1 {
   background: #0056b3;
 }
 
-/* Autocomplete Suggestions */
-#suggestions {
-  list-style: none;
-  padding: 0;
-  margin: 0.5rem auto 0;
-  max-width: 300px;
-  background: #fff;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  position: absolute;
-  z-index: 1000;
-  left: 50%;
-  transform: translateX(-50%);
-  display: none;
-}
-
-#suggestions li {
-  padding: 10px;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.2s;
-}
-
-#suggestions li:hover {
-  background-color: #f0f0f0;
-}
-
 /* Result Card */
 .card {
   background: white;
@@ -99,7 +71,6 @@ h1 {
   border-radius: 12px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
   margin-top: 1rem;
-  transition: background 0.3s;
 }
 
 .hidden {
@@ -138,19 +109,47 @@ h1 {
   margin-top: 1rem;
 }
 
+/* Suggestions Dropdown */
+#suggestions {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 300px;
+  width: 100%;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  display: none;
+}
+
+#suggestions li {
+  padding: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+#suggestions li:hover {
+  background-color: #f0f0f0;
+}
+
+/* Map */
+.map {
+  height: 300px;
+  margin-top: 2rem;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
 /* Footer */
 footer {
   margin-top: 3rem;
   font-size: 0.9rem;
   color: #888;
   text-align: center;
-}
-
-footer a {
-  color: #007bff;
-  text-decoration: none;
-}
-
-footer a:hover {
-  text-decoration: underline;
 }
