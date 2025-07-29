@@ -17,25 +17,29 @@
       <div class="search-box">
         <div class="input-wrapper">
           <span class="search-icon">🔍</span>
-          <input type="text" id="cityInput" placeholder="Enter city name..." autocomplete="off" />
+          <input
+            type="text"
+            id="cityInput"
+            placeholder="Enter city name..."
+            autocomplete="off"
+          />
           <div class="loading-spinner" id="loadingSpinner"></div>
         </div>
         <ul id="suggestions"></ul>
 
         <div class="button-group">
           <button id="searchBtn" class="btn btn-primary">
-            <span>🔍</span>
-            Search Weather
+            <span>🔍</span> Search Weather
           </button>
           <button id="locateBtn" class="btn btn-secondary">
-            <span>📍</span>
-            Use My Location
+            <span>📍</span> Use My Location
           </button>
         </div>
       </div>
     </section>
 
     <div id="results" class="results-grid hidden">
+      <!-- Weather Card -->
       <div class="card weather-card fade-in">
         <h2 id="locationName" class="location-name"></h2>
         <div class="weather-display">
@@ -45,6 +49,7 @@
             <div id="description" class="description"></div>
           </div>
         </div>
+
         <div class="weather-stats">
           <div class="stat-item">
             <div id="humidity" class="stat-value">--</div>
@@ -65,19 +70,23 @@
         </div>
       </div>
 
-      <div class="card fade-in">
-        <div class="card-header">
-          <div class="card-icon">🌬️</div>
-          <h3 class="card-title">Air Quality Index</h3>
-        </div>
-        <div class="aqi-display">
-          <div id="aqi" class="aqi-value">--</div>
-          <div id="aqiDesc" class="aqi-description"></div>
-          <div id="aqiAdvice" class="aqi-advice"></div>
+      <!-- AQI Card Centered -->
+      <div class="center-wrapper">
+        <div class="card fade-in">
+          <div class="card-header">
+            <div class="card-icon">🌬️</div>
+            <h3 class="card-title">Air Quality Index</h3>
+          </div>
+          <div class="aqi-display">
+            <div id="aqi" class="aqi-value">--</div>
+            <div id="aqiDesc" class="aqi-description"></div>
+            <div id="aqiAdvice" class="aqi-advice"></div>
+          </div>
         </div>
       </div>
     </div>
 
+    <!-- Error Display -->
     <div id="error" class="error hidden"></div>
   </div>
 
@@ -85,6 +94,6 @@
     <p>© 2025 ClimaNow. Powered by OpenWeatherMap & WAQI APIs</p>
   </footer>
 
-  <script src="scripts .js"></script>
+  <script src="scripts.js"></script>
 </body>
 </html>
