@@ -33,12 +33,15 @@ const elements = {
   visibility: document.getElementById("visibility"),
   aqi: document.getElementById("aqi"),
   aqiDesc: document.getElementById("aqiDesc"),
-  aqiAdvice: document.getElementById("aqiAdvice")
+  aqiAdvice: document.getElementById("aqiAdvice"),
+  map: document.getElementById("map")
 };
 
 // State Management
 let suggestionTimeout;
 let currentRequest;
+let map;
+let currentMarker;
 
 // Event Listeners
 elements.locateBtn.addEventListener("click", handleGeolocation);
@@ -320,25 +323,27 @@ async function searchCityWeather(city) {
     console.log("🌍 Geocoding result:", data);
 
     if (data.length === 0) {
-      throw new Error(`City "${city}" not found. Please check the spelling and try again.`);
+      setLoading(false);
+      showError(`❌ City "${city}" not found. Please check the spelling and try again.`);
+      return;
     }
 
-    const { lat, lon, name, state, country } = data[0];
-    const displayName = `${name}${state ? ', ' + state : ''}, ${country}`;
+    const location = data[0];
+    const displayName = `${location.name}${location.state ? ', ' + location.state : ''}, ${location.country}`;
 
-    console.log(`✅ Found city: ${displayName} at ${lat}, ${lon}`);
-    await fetchWeatherData(lat, lon, displayName);
+    console.log(`✅ Found: ${displayName} at ${location.lat}, ${location.lon}`);
+    await fetchWeatherData(location.lat, location.lon, displayName);
+
   } catch (error) {
+    console.error("❌ Error searching city:", error);
     setLoading(false);
-    console.error("❌ City search error:", error);
-    showError(error.message);
+    showError("❌ Failed to search for city. Please check your internet connection and try again.");
   }
 }
 
-// Fetch Weather Data with comprehensive error handling
-async function fetchWeatherData(lat, lon, placeName = null) {
+// Fetch Weather Data
+async function fetchWeatherData(lat, lon, locationName = null) {
   try {
-    clearError();
     console.log(`🌤️ Fetching weather data for coordinates: ${lat}, ${lon}`);
 
     // Fetch weather data
@@ -356,12 +361,11 @@ async function fetchWeatherData(lat, lon, placeName = null) {
     }
 
     const weatherData = await weatherResponse.json();
-    console.log("✅ Weather data received:", weatherData);
+    console.log("🌤️ Weather data received:", weatherData);
 
-    // Fetch AQI data (with fallback if it fails)
+    // Fetch air quality data
     let aqiData = null;
     try {
-      console.log(`🌬️ Fetching AQI data for coordinates: ${lat}, ${lon}`);
       const aqiResponse = await fetch(
         `https://api.waqi.info/feed/geo:${lat};${lon}/?token=${AQI_TOKEN}`,
         {
@@ -373,144 +377,267 @@ async function fetchWeatherData(lat, lon, placeName = null) {
 
       if (aqiResponse.ok) {
         aqiData = await aqiResponse.json();
-        console.log("✅ AQI data received:", aqiData);
-      } else {
-        console.warn("⚠️ AQI API failed, continuing without AQI data");
+        console.log("🌬️ AQI data received:", aqiData);
       }
     } catch (aqiError) {
-      console.warn("⚠️ AQI fetch failed:", aqiError);
+      console.warn("⚠️ Could not fetch AQI data:", aqiError);
     }
 
-    // Update UI
-    updateWeatherUI(weatherData, placeName);
-    updateAQIUI(aqiData);
-    showResults();
+    // Display the weather data
+    displayWeatherData(weatherData, aqiData, locationName);
+
+    // Initialize or update map
+    initializeMap(lat, lon, weatherData.name);
 
   } catch (error) {
-    console.error("❌ Weather fetch error:", error);
-    showError("Failed to load weather data. Please check your internet connection and try again.");
-  } finally {
+    console.error("❌ Error fetching weather data:", error);
     setLoading(false);
+    showError("❌ Failed to fetch weather data. Please try again.");
   }
 }
 
-// Update Weather UI
-function updateWeatherUI(data, placeName) {
-  const displayName = placeName || `${data.name}, ${data.sys.country}`;
+// Display Weather Data
+function displayWeatherData(weatherData, aqiData, customLocationName) {
+  console.log("🖼️ Displaying weather data...");
 
+  setLoading(false);
+  hideError();
+
+  // Update location name
+  const displayName = customLocationName || `${weatherData.name}, ${weatherData.sys.country}`;
   elements.locationName.textContent = displayName;
-  elements.weatherIcon.src = `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
-  elements.weatherIcon.alt = data.weather[0].description;
-  elements.temperature.textContent = `${Math.round(data.main.temp)}°C`;
-  elements.description.textContent = data.weather[0].description;
 
-  // Additional weather stats
-  elements.humidity.textContent = `${data.main.humidity}%`;
-  elements.windSpeed.textContent = `${data.wind ? data.wind.speed : 0} m/s`;
-  elements.pressure.textContent = `${data.main.pressure} hPa`;
-  elements.visibility.textContent = data.visibility ? `${(data.visibility / 1000).toFixed(1)} km` : 'N/A';
+  // Update weather icon
+  const iconCode = weatherData.weather[0].icon;
+  elements.weatherIcon.innerHTML = `
+    <img src="https://openweathermap.org/img/wn/${iconCode}@2x.png"
+         alt="${weatherData.weather[0].description}"
+         style="width: 80px; height: 80px;">
+  `;
 
-  console.log("✅ Weather UI updated successfully");
-}
+  // Update temperature
+  elements.temperature.textContent = `${Math.round(weatherData.main.temp)}°C`;
 
-// Update AQI UI
-function updateAQIUI(data) {
-  if (!data || !data.data || data.status !== 'ok') {
-    elements.aqi.textContent = "N/A";
-    elements.aqiDesc.textContent = "Air quality data unavailable";
-    elements.aqiAdvice.textContent = "Unable to retrieve air quality information for this location.";
-    elements.aqi.className = "aqi-value";
-    console.log("⚠️ AQI data unavailable");
-    return;
+  // Update description
+  elements.description.textContent = weatherData.weather[0].description
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
+  // Update weather details
+  elements.humidity.textContent = `${weatherData.main.humidity}%`;
+  elements.windSpeed.textContent = `${weatherData.wind.speed} m/s`;
+  elements.pressure.textContent = `${weatherData.main.pressure} hPa`;
+  elements.visibility.textContent = weatherData.visibility
+    ? `${(weatherData.visibility / 1000).toFixed(1)} km`
+    : 'N/A';
+
+  // Update AQI data
+  if (aqiData && aqiData.status === 'ok' && aqiData.data.aqi) {
+    const aqi = aqiData.data.aqi;
+    elements.aqi.textContent = aqi;
+
+    const aqiInfo = getAQIInfo(aqi);
+    elements.aqiDesc.textContent = aqiInfo.description;
+    elements.aqiDesc.style.color = aqiInfo.color;
+    elements.aqiAdvice.textContent = aqiInfo.advice;
+  } else {
+    elements.aqi.textContent = 'N/A';
+    elements.aqiDesc.textContent = 'Data unavailable';
+    elements.aqiDesc.style.color = '#666';
+    elements.aqiAdvice.textContent = 'Air quality information is not available for this location.';
   }
 
-  const aqiValue = data.data.aqi;
-  const aqiInfo = getAQIInfo(aqiValue);
+  // Show results
+  elements.results.style.display = 'block';
 
-  elements.aqi.textContent = aqiValue;
-  elements.aqi.className = `aqi-value ${aqiInfo.class}`;
-  elements.aqiDesc.textContent = aqiInfo.description;
-  elements.aqiAdvice.textContent = aqiInfo.advice;
-
-  console.log(`✅ AQI updated: ${aqiValue} (${aqiInfo.description})`);
+  console.log("✅ Weather data displayed successfully");
 }
 
 // Get AQI Information
-function getAQIInfo(value) {
-  if (value <= 50) {
+function getAQIInfo(aqi) {
+  if (aqi <= 50) {
     return {
-      class: 'aqi-good',
-      description: 'Good 👍',
-      advice: 'Air quality is satisfactory. Perfect for outdoor activities!'
+      description: 'Good',
+      color: '#00e400',
+      advice: 'Air quality is satisfactory, and air pollution poses little or no risk.'
     };
-  } else if (value <= 100) {
+  } else if (aqi <= 100) {
     return {
-      class: 'aqi-moderate',
-      description: 'Moderate 😐',
-      advice: 'Air quality is acceptable for most people. Sensitive individuals should consider limiting prolonged outdoor exertion.'
+      description: 'Moderate',
+      color: '#ffff00',
+      advice: 'Air quality is acceptable. However, sensitive people may experience minor issues.'
     };
-  } else if (value <= 150) {
+  } else if (aqi <= 150) {
     return {
-      class: 'aqi-unhealthy-sensitive',
-      description: 'Unhealthy for Sensitive Groups 😷',
-      advice: 'Children, elderly, and people with respiratory conditions should limit outdoor activities.'
+      description: 'Unhealthy for Sensitive Groups',
+      color: '#ff7e00',
+      advice: 'Members of sensitive groups may experience health effects. The general public is less likely to be affected.'
     };
-  } else if (value <= 200) {
+  } else if (aqi <= 200) {
     return {
-      class: 'aqi-unhealthy',
-      description: 'Unhealthy 😣',
-      advice: 'Everyone should limit outdoor activities, especially prolonged or heavy exertion.'
+      description: 'Unhealthy',
+      color: '#ff0000',
+      advice: 'Some members of the general public may experience health effects; sensitive groups may experience more serious effects.'
     };
-  } else if (value <= 300) {
+  } else if (aqi <= 300) {
     return {
-      class: 'aqi-very-unhealthy',
-      description: 'Very Unhealthy 😵',
-      advice: 'Health alert! Everyone should avoid outdoor activities. Stay indoors with air purifiers if possible.'
+      description: 'Very Unhealthy',
+      color: '#8f3f97',
+      advice: 'Health alert: The risk of health effects is increased for everyone.'
     };
   } else {
     return {
-      class: 'aqi-hazardous',
-      description: 'Hazardous ☠️',
-      advice: 'Emergency conditions! All outdoor activities should be avoided. Seek indoor shelter immediately.'
+      description: 'Hazardous',
+      color: '#7e0023',
+      advice: 'Health warning of emergency conditions: everyone is more likely to be affected.'
     };
   }
 }
 
-// UI State Management
+// Initialize Map
+function initializeMap(lat, lon, locationName) {
+  try {
+    console.log(`🗺️ Initializing map for ${locationName} at ${lat}, ${lon}`);
+
+    // If map doesn't exist, create it
+    if (!map) {
+      map = L.map('map').setView([lat, lon], 10);
+
+      // Add tile layer
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+
+      // Add click event listener to map
+      map.on('click', handleMapClick);
+
+      // Add loading indicator for map clicks
+      map.on('click', () => {
+        console.log("🗺️ Map clicked - fetching weather data...");
+      });
+    } else {
+      // Update existing map
+      map.setView([lat, lon], 10);
+    }
+
+    // Remove existing marker
+    if (currentMarker) {
+      map.removeLayer(currentMarker);
+    }
+
+    // Add new marker
+    currentMarker = L.marker([lat, lon])
+      .addTo(map)
+      .bindPopup(`📍 ${locationName}<br><small>Click anywhere on the map to get weather for that location</small>`)
+      .openPopup();
+
+    console.log("✅ Map updated successfully");
+
+  } catch (error) {
+    console.error("❌ Error initializing map:", error);
+    // Hide map container if Leaflet is not available
+    if (elements.map) {
+      elements.map.style.display = 'none';
+    }
+  }
+}
+
+// Handle Map Click Events
+async function handleMapClick(e) {
+  const { lat, lng } = e.latlng;
+  console.log(`🗺️ Map clicked at coordinates: ${lat}, ${lng}`);
+
+  try {
+    // Show loading state
+    setLoading(true);
+
+    // Add a temporary marker to show where user clicked
+    const tempMarker = L.marker([lat, lng])
+      .addTo(map)
+      .bindPopup('🔍 Getting weather data...')
+      .openPopup();
+
+    // Fetch reverse geocoding to get location name
+    let locationName = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+
+    try {
+      const reverseGeoResponse = await fetch(
+        `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lng}&limit=1&appid=${API_KEY}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+          }
+        }
+      );
+
+      if (reverseGeoResponse.ok) {
+        const reverseGeoData = await reverseGeoResponse.json();
+        if (reverseGeoData.length > 0) {
+          const location = reverseGeoData[0];
+          locationName = `${location.name}${location.state ? ', ' + location.state : ''}, ${location.country}`;
+          console.log(`📍 Reverse geocoded location: ${locationName}`);
+        }
+      }
+    } catch (reverseGeoError) {
+      console.warn("⚠️ Could not reverse geocode location:", reverseGeoError);
+    }
+
+    // Remove temporary marker
+    map.removeLayer(tempMarker);
+
+    // Update input field with coordinates or location name
+    elements.cityInput.value = locationName.split(',')[0];
+
+    // Fetch weather data for clicked location
+    await fetchWeatherData(lat, lng, locationName);
+
+  } catch (error) {
+    console.error("❌ Error handling map click:", error);
+    setLoading(false);
+    showError("❌ Failed to get weather data for selected location. Please try again.");
+  }
+}
+
+// Utility Functions
 function setLoading(isLoading) {
-  elements.loadingSpinner.style.display = isLoading ? "block" : "none";
-  elements.searchBtn.disabled = isLoading;
-  elements.locateBtn.disabled = isLoading;
-
   if (isLoading) {
-    elements.searchBtn.innerHTML = '<span>⏳</span> Loading...';
-    elements.locateBtn.innerHTML = '<span>⏳</span> Loading...';
+    elements.loadingSpinner.style.display = 'block';
+    elements.results.style.display = 'none';
+    hideError();
   } else {
-    elements.searchBtn.innerHTML = '<span>🔍</span> Search Weather';
-    elements.locateBtn.innerHTML = '<span>📍</span> Use My Location';
+    elements.loadingSpinner.style.display = 'none';
   }
-}
-
-function showResults() {
-  elements.results.classList.remove("hidden");
-  elements.error.classList.add("hidden");
 }
 
 function showError(message) {
   elements.error.textContent = message;
-  elements.error.classList.remove("hidden");
-  elements.results.classList.add("hidden");
+  elements.error.style.display = 'block';
+  elements.results.style.display = 'none';
+  elements.loadingSpinner.style.display = 'none';
+  console.error("🚨 Error displayed:", message);
 }
 
-function clearError() {
-  elements.error.classList.add("hidden");
+function hideError() {
+  elements.error.style.display = 'none';
 }
 
-// Initialize app
-document.addEventListener('DOMContentLoaded', async function() {
-  console.log("🚀 ClimaNow app initialized");
-  elements.cityInput.focus();
+// Initialize the app
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log("🚀 Weather app initialized");
 
-  // Test API connection on startup
+  // Test API connectivity on startup
   await testAPIConnection();
+
+  // Try to get user's location automatically on load (optional)
+  // Uncomment the next line if you want auto-location on page load
+  // handleGeolocation();
+});
+
+// Handle page visibility changes to refresh data when user returns
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && elements.results.style.display === 'block') {
+    // Optionally refresh data when user returns to the page
+    console.log("👁️ Page is visible again - could refresh weather data here");
+  }
 });

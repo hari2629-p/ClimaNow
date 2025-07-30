@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ClimaNow | Live Weather & Air Quality</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -17,29 +18,34 @@
       <div class="search-box">
         <div class="input-wrapper">
           <span class="search-icon">🔍</span>
-          <input
-            type="text"
-            id="cityInput"
-            placeholder="Enter city name..."
-            autocomplete="off"
-          />
+          <input type="text" id="cityInput" placeholder="Enter city name..." autocomplete="off" />
           <div class="loading-spinner" id="loadingSpinner"></div>
         </div>
         <ul id="suggestions"></ul>
 
         <div class="button-group">
           <button id="searchBtn" class="btn btn-primary">
-            <span>🔍</span> Search Weather
+            <span>🔍</span>
+            Search Weather
           </button>
           <button id="locateBtn" class="btn btn-secondary">
-            <span>📍</span> Use My Location
+            <span>📍</span>
+            Use My Location
           </button>
         </div>
       </div>
     </section>
 
+    <!-- Interactive Map Section -->
+    <section class="map-section">
+      <div class="map-header">
+        <h3 class="map-title">🗺️ Click on Map to Get Weather</h3>
+        <p class="map-subtitle">Click anywhere on the map to get weather and air quality data for that location</p>
+      </div>
+      <div id="map" class="map-container"></div>
+    </section>
+
     <div id="results" class="results-grid hidden">
-      <!-- Weather Card -->
       <div class="card weather-card fade-in">
         <h2 id="locationName" class="location-name"></h2>
         <div class="weather-display">
@@ -49,7 +55,6 @@
             <div id="description" class="description"></div>
           </div>
         </div>
-
         <div class="weather-stats">
           <div class="stat-item">
             <div id="humidity" class="stat-value">--</div>
@@ -70,30 +75,27 @@
         </div>
       </div>
 
-      <!-- AQI Card Centered -->
-      <div class="center-wrapper">
-        <div class="card fade-in">
-          <div class="card-header">
-            <div class="card-icon">🌬️</div>
-            <h3 class="card-title">Air Quality Index</h3>
-          </div>
-          <div class="aqi-display">
-            <div id="aqi" class="aqi-value">--</div>
-            <div id="aqiDesc" class="aqi-description"></div>
-            <div id="aqiAdvice" class="aqi-advice"></div>
-          </div>
+      <div class="card fade-in">
+        <div class="card-header">
+          <div class="card-icon">🌬️</div>
+          <h3 class="card-title">Air Quality Index</h3>
+        </div>
+        <div class="aqi-display">
+          <div id="aqi" class="aqi-value">--</div>
+          <div id="aqiDesc" class="aqi-description"></div>
+          <div id="aqiAdvice" class="aqi-advice"></div>
         </div>
       </div>
     </div>
 
-    <!-- Error Display -->
     <div id="error" class="error hidden"></div>
   </div>
 
   <footer>
-    <p>© 2025 ClimaNow. Powered by OpenWeatherMap & WAQI APIs|HGP</p>
+    <p>© 2025 ClimaNow. Powered by OpenWeatherMap & WAQI APIs</p>
   </footer>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="scripts.js"></script>
 </body>
 </html>
